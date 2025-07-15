@@ -66,7 +66,7 @@
 -	db.subscribers.find().pretty()
 # Crear fichero con la información para crear nuevo usuario
 amf:
-  hostname: open5gs-amf-ngap
+hostname: open5gs-amf-ngap
 
 mcc: '999'
 mnc: '70'
@@ -75,9 +75,9 @@ sd: "0x111111"
 tac: '0001'
 
 ues:
-  enabled: true
-  count: 3
-  initialMSISDN: '0000000001'
+enabled: true
+count: 3
+initialMSISDN: '0000000001'
 
 # Despliegue de ueransim con nuevo fichero
 -	helm install ueransim-gnb oci://registry-1.docker.io/gradiant/ueransim-gnb --version 0.2.6 –values <nombre del fichero>
