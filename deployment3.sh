@@ -1,14 +1,30 @@
 #!/bin/bash
-#IMPORTANTE: TENER EL FICHERO  gnb-ues-values.yaml y modificar "count=3"
+
 # Desplegar Core 5G
-helm install open5gs oci://registry-1.docker.io/gradiantcharts/open5gs --version 2.2.9 --values https://gradiant.github.io/5g-charts/docs/open5gs-ueransim-gnb/5gSA-values.yaml
+echo "Instalando Open5GS Core..."
+helm install open5gs oci://registry-1.docker.io/gradiantcharts/open5gs \
+  --version 2.2.9 \
+  --values https://gradiant.github.io/5g-charts/docs/open5gs-ueransim-gnb/5gSA-values.yaml
 
-# Resgistrar un nuevo usuario a traves del populate
-# Ingresar a Pod populate
-microk8s kubectl exec deployment/open5gs-populate -ti – bash
-# Registrar nuevo usuario
-open5gs-dbctl add_ue_with_slice 999700000000003 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
+# Esperar a que el pod open5gs-populate esté listo
+echo "Esperando a que el pod open5gs-populate esté listo..."
+until microk8s kubectl get pod -l app.kubernetes.io/component=populate -o jsonpath="{.items[0].status.phase}" | grep -q "Running"; do
+    sleep 3
+    echo -n "."
+done
+echo -e "\nPod populate listo."
 
-# Desplegar gNode con nuevo usuario 
+# Ejecutar el comando open5gs-dbctl dentro del pod
+echo "Registrando nuevo UE en la base de datos..."
+POPULATE_POD=$(microk8s kubectl get pod -l app.kubernetes.io/component=populate -o jsonpath="{.items[0].metadata.name}")
+microk8s kubectl exec -i "$POPULATE_POD" -- \
+  open5gs-dbctl add_ue_with_slice 999700000000003 \
+  465B5CE8B199B49FAA5F0A2EE238A6BC \
+  E8ED289DEBA952E4283B54E88E6183CA \
+  internet 1 111111
 
-helm install ueransim-gnb oci://registry-1.docker.io/gradiant/ueransim-gnb --version 0.2.6 –values gnb-ues-values.yaml
+# Desplegar gNB y UEs
+echo "Desplegando UERANSIM (gNB y UEs)..."
+helm install ueransim-gnb oci://registry-1.docker.io/gradiant/ueransim-gnb \
+  --version 0.2.6 \
+  --values gnb-ues-values.yaml
